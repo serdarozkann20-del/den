@@ -1,0 +1,5 @@
+# Godot editor cache / imported resources (regenerated on open)
+.godot/
+# OS noise
+.DS_Store
+Thumbs.db

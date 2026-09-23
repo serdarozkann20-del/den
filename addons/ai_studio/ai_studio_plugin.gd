@@ -51,8 +51,22 @@ func _enter_tree() -> void:
 		# Give the editor a moment to finish loading before spawning processes.
 		await get_tree().create_timer(1.0).timeout
 		if is_inside_tree():
+			var untrusted := _untrusted_project_servers()
 			mcp.connect_all()
 			dock.mcp_view.refresh()
+			if not untrusted.is_empty():
+				# These only exist because the opened project asked for them.
+				_notify("Project MCP server(s) not started: %s. Review them on the MCP tab." % ", ".join(untrusted), false)
+
+
+## Servers the project file defines while the user has not trusted project files.
+func _untrusted_project_servers() -> PackedStringArray:
+	var out := PackedStringArray()
+	if config.project_servers_allowed():
+		return out
+	for name in config.project_server_names():
+		out.append(name)
+	return out
 
 
 ## Editor-mode self check. Run with
