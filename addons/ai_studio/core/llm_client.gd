@@ -160,6 +160,10 @@ func stream_chat(messages: Array, tools: Array = [], opts: Dictionary = {}) -> D
 		notes.append(_degradation_note(drop))
 		attempts += 1
 
+	# Unreachable: GDScript's analyzer does not treat `while true` as infinite,
+	# so without this the function fails with "Not all code paths return a value".
+	return _fail("Request loop exited unexpectedly.")
+
 
 ## One HTTP attempt with a request that is already built.
 ## Returns {"ok": bool, "status": int, "result": Dictionary}.
