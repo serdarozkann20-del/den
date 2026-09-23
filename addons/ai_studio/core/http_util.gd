@@ -111,7 +111,7 @@ static func parse_sse_events(text: String) -> Array:
 				v = v.substr(1)
 			data_lines.append(v)
 	if not data_lines.is_empty():
-		var parsed := JSON.parse_string("\n".join(data_lines))
+		var parsed: Variant = JSON.parse_string("\n".join(data_lines))
 		if parsed != null:
 			events.append(parsed)
 	return events

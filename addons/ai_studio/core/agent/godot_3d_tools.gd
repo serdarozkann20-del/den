@@ -395,7 +395,7 @@ static func _tokens(raw: String) -> PackedStringArray:
 	var current := ""
 	var last := ""
 	for i in raw.length():
-		var c := raw[i]
+		var c := raw.substr(i, 1)
 		var lower := c.to_lower()
 		var is_alpha := lower >= "a" and lower <= "z"
 		var is_digit := c >= "0" and c <= "9"
@@ -429,7 +429,7 @@ static func _is_digits(token: String) -> bool:
 	if token.is_empty():
 		return false
 	for i in token.length():
-		var c := token[i]
+		var c := token.substr(i, 1)
 		if c < "0" or c > "9":
 			return false
 	return true
@@ -1322,7 +1322,7 @@ func _tool_create_material(args: Dictionary) -> Dictionary:
 	var material := StandardMaterial3D.new()
 	var notes := PackedStringArray()
 	if args.has("albedo_color"):
-		var colour := _parse_color(String(args["albedo_color"]))
+		var colour: Variant = _parse_color(String(args["albedo_color"]))
 		if colour == null:
 			return host._err("Could not parse albedo_color '%s'." % args["albedo_color"])
 		material.albedo_color = colour
@@ -1331,7 +1331,7 @@ func _tool_create_material(args: Dictionary) -> Dictionary:
 	if args.has("roughness"):
 		material.roughness = clampf(float(args["roughness"]), 0.0, 1.0)
 	if args.has("emission_color"):
-		var emission := _parse_color(String(args["emission_color"]))
+		var emission: Variant = _parse_color(String(args["emission_color"]))
 		if emission == null:
 			return host._err("Could not parse emission_color.")
 		material.emission_enabled = true
@@ -1379,7 +1379,7 @@ func _tool_create_material(args: Dictionary) -> Dictionary:
 	if args.has("vertex_color_use_as_albedo"):
 		material.vertex_color_use_as_albedo = bool(args["vertex_color_use_as_albedo"])
 	if args.has("uv1_scale"):
-		var scale := _parse_vec(String(args["uv1_scale"]), Vector3.ONE)
+		var scale: Variant = _parse_vec(String(args["uv1_scale"]), Vector3.ONE)
 		if scale == null:
 			return host._err("Could not parse uv1_scale.")
 		material.uv1_scale = scale
@@ -1545,7 +1545,7 @@ func _tool_add_physics_body(args: Dictionary) -> Dictionary:
 			aabb = AABB(aabb.position * fit.scale.abs(), aabb.size * fit.scale.abs())
 		var size: Vector3 = aabb.size
 		if args.has("size"):
-			var parsed := _parse_vec(String(args["size"]), Vector3.ONE)
+			var parsed: Variant = _parse_vec(String(args["size"]), Vector3.ONE)
 			if parsed == null:
 				return host._err("Could not parse size.")
 			size = parsed
@@ -1591,7 +1591,7 @@ func _tool_add_physics_body(args: Dictionary) -> Dictionary:
 		collider.name = "CollisionShape3D"
 		collider.shape = shape
 		if args.has("offset"):
-			var offset := _parse_vec(String(args["offset"]), Vector3.ZERO)
+			var offset: Variant = _parse_vec(String(args["offset"]), Vector3.ZERO)
 			if offset == null:
 				return host._err("Could not parse offset.")
 			collider.position = offset
@@ -1622,7 +1622,7 @@ func _tool_add_camera(args: Dictionary) -> Dictionary:
 	var name := String(args.get("name", "")).strip_edges()
 	camera.name = name if not name.is_empty() else "Camera3D"
 	if args.has("position"):
-		var pos := _parse_vec(String(args["position"]), Vector3.ZERO)
+		var pos: Variant = _parse_vec(String(args["position"]), Vector3.ZERO)
 		if pos == null:
 			return host._err("Could not parse position.")
 		camera.position = pos
@@ -1638,7 +1638,7 @@ func _tool_add_camera(args: Dictionary) -> Dictionary:
 		if node != null and node is Node3D:
 			target = (node as Node3D).global_position
 		else:
-			var parsed := _parse_vec(look, Vector3.ZERO)
+			var parsed: Variant = _parse_vec(look, Vector3.ZERO)
 			if parsed != null:
 				target = parsed
 		if target != Vector3.INF:
@@ -1678,7 +1678,7 @@ func _tool_setup_environment(args: Dictionary) -> Dictionary:
 		created_light.light_energy = float(args.get("sun_energy", 1.0))
 		created_light.shadow_enabled = bool(args.get("shadows", true))
 		if args.has("sun_color"):
-			var sun_colour := _parse_color(String(args["sun_color"]))
+			var sun_colour: Variant = _parse_color(String(args["sun_color"]))
 			if sun_colour == null:
 				return host._err("Could not parse sun_color.")
 			created_light.light_color = sun_colour
@@ -1686,7 +1686,7 @@ func _tool_setup_environment(args: Dictionary) -> Dictionary:
 		light = created_light
 		lines.append("Added DirectionalLight3D 'Sun' under %s" % _node_path_from(root, parent))
 	var rotation_text := String(args.get("sun_rotation_degrees", "-45,-35,0"))
-	var degrees := _parse_vec(rotation_text, Vector3(-45, -35, 0))
+	var degrees: Variant = _parse_vec(rotation_text, Vector3(-45, -35, 0))
 	if degrees == null:
 		return host._err("Could not parse sun_rotation_degrees.")
 	light.rotation_degrees = degrees
@@ -1699,17 +1699,17 @@ func _tool_setup_environment(args: Dictionary) -> Dictionary:
 			var sky := Sky.new()
 			var sky_material := ProceduralSkyMaterial.new()
 			if args.has("sky_top_color"):
-				var c := _parse_color(String(args["sky_top_color"]))
+				var c: Variant = _parse_color(String(args["sky_top_color"]))
 				if c == null:
 					return host._err("Could not parse sky_top_color.")
 				sky_material.sky_top_color = c
 			if args.has("sky_horizon_color"):
-				var c2 := _parse_color(String(args["sky_horizon_color"]))
+				var c2: Variant = _parse_color(String(args["sky_horizon_color"]))
 				if c2 == null:
 					return host._err("Could not parse sky_horizon_color.")
 				sky_material.sky_horizon_color = c2
 			if args.has("ground_color"):
-				var c3 := _parse_color(String(args["ground_color"]))
+				var c3: Variant = _parse_color(String(args["ground_color"]))
 				if c3 == null:
 					return host._err("Could not parse ground_color.")
 				sky_material.ground_bottom_color = c3
@@ -1720,7 +1720,7 @@ func _tool_setup_environment(args: Dictionary) -> Dictionary:
 			lines.append("Background: procedural sky")
 		"color":
 			environment.background_mode = Environment.BG_COLOR
-			var bg := _parse_color(String(args.get("background_color", "#101828")))
+			var bg: Variant = _parse_color(String(args.get("background_color", "#101828")))
 			if bg == null:
 				return host._err("Could not parse background_color.")
 			environment.background_color = bg
@@ -1738,7 +1738,7 @@ func _tool_setup_environment(args: Dictionary) -> Dictionary:
 		environment.fog_enabled = true
 		environment.fog_density = float(args.get("fog_density", 0.01))
 		if args.has("fog_color"):
-			var fog_colour := _parse_color(String(args["fog_color"]))
+			var fog_colour: Variant = _parse_color(String(args["fog_color"]))
 			if fog_colour == null:
 				return host._err("Could not parse fog_color.")
 			environment.fog_light_color = fog_colour
@@ -1850,8 +1850,8 @@ func _tool_set_import_settings(args: Dictionary) -> Dictionary:
 	lines.append("Updated %s" % found["import_path"])
 	for key in settings.keys():
 		var key_text := String(key)
-		var value := _coerce_import_value(settings[key])
-		var before := cf.get_value(section, key_text) if cf.has_section_key(section, key_text) else null
+		var value: Variant = _coerce_import_value(settings[key])
+		var before: Variant = cf.get_value(section, key_text) if cf.has_section_key(section, key_text) else null
 		cf.set_value(section, key_text, value)
 		lines.append("  %s: %s -> %s" % [key_text, var_to_str(before), var_to_str(value)])
 	err = cf.save(String(found["import_path"]))
@@ -1926,7 +1926,7 @@ static func _numbers(text: String) -> PackedFloat32Array:
 	var out := PackedFloat32Array()
 	var current := ""
 	for i in text.length():
-		var c := text[i]
+		var c := text.substr(i, 1)
 		var numeric := (c >= "0" and c <= "9") or c == "-" or c == "+" or c == "." or c == "e" or c == "E"
 		if numeric:
 			current += c

@@ -493,7 +493,7 @@ func _tool_project_settings(args: Dictionary) -> Dictionary:
 		var name := String(p["name"])
 		if not name.match(pattern):
 			continue
-		var value := ProjectSettings.get_setting(name)
+		var value: Variant = ProjectSettings.get_setting(name)
 		out.append("%s = %s" % [name, var_to_str(value)])
 		count += 1
 		if count >= max_results:

@@ -95,7 +95,7 @@ static func _escape(text: String) -> String:
 	# the very escape sequences the first replacement just inserted.
 	var out := ""
 	for i in text.length():
-		var c := text[i]
+		var c := text.substr(i, 1)
 		if c == "[":
 			out += "[lb]"
 		elif c == "]":

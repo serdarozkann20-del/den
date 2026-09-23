@@ -247,7 +247,7 @@ static func _exposed_name(server_name: String, tool_name: String) -> String:
 static func _sanitize(value: String) -> String:
 	var out := ""
 	for i in value.length():
-		var c := value[i]
+		var c := value.substr(i, 1)
 		var code := value.unicode_at(i)
 		var ok_char := (code >= 48 and code <= 57) or (code >= 65 and code <= 90) \
 			or (code >= 97 and code <= 122) or c == "-" or c == "_"
