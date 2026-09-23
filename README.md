@@ -1,31 +1,42 @@
 # AI Studio (Godot editor plugin)
 
 Chat with AI models and let them use tools on your project, from inside the Godot 4.7 editor.
-Bring your own key for OpenAI, Anthropic, Google, Nous/Hermes, OpenRouter, Ollama, LM Studio
-or any OpenAI-compatible endpoint, and connect MCP servers — including Hermes Agent.
+Bring your own key for OpenAI, Anthropic, Google, Nous/Hermes, OpenRouter, **9Router**, Ollama,
+LM Studio or any OpenAI-compatible endpoint, and connect MCP servers — including Hermes Agent.
 
 ## Install
 
-1. Copy this folder to `<your project>/addons/ai_studio`.
+1. Copy the `addons/ai_studio` folder from this repository into `<your project>/addons/ai_studio`.
 2. **Project → Project Settings → Plugins** → enable **AI Studio**.
 3. Pick a provider and paste an API key in the **Model** tab, press *Refresh models*, choose a
-   model.
+   model — or simply type any model id the endpoint knows.
 4. Chat in the **Chat** tab. Agent mode lets the model call tools (with approval); Chat mode is
    a plain conversation.
 
-Full documentation, the tool list and the MCP setup (including Hermes Agent presets) ship with
-the source repository:
+The plugin only loads from `addons/ai_studio/plugin.cfg`. If it does not show up in
+**Project → Project Settings → Plugins**, the folder ended up one level too deep — the path has to
+be `<project>/addons/ai_studio/`.
 
-* `docs/providers.md` — providers, environment variables, custom endpoints, model discovery
-* `docs/mcp.md` — stdio/HTTP transports, server definitions, Hermes Agent, sampling bridge
-* `docs/tools.md` — all 36 built-in tools, guardrails and the agent loop
-* `docs/3d.md` — rig/bone-map, animation retargeting, physics, lighting and import workflows
-* `docs/testing.md` — test suite, mock servers, smoke test, install check
+## Using 9Router (or any router with combo names)
 
-If the plugin does not show up in **Project → Project Settings → Plugins**, the archive was
-most likely extracted one level too deep (Godot only loads `addons/ai_studio/plugin.cfg`).
-`tools/check_install.sh /path/to/project` names the problem, and
-`docs/install-troubleshooting.md` walks through the fixes.
+[9Router](https://github.com/decolua/9router) is a self-hosted OpenAI-compatible gateway with
+fallback chains ("combos"):
+
+1. **Model → Provider → 9Router (local gateway)** — base URL is pre-filled with
+   `http://localhost:20128/v1`. (`http://localhost:20128` alone also works; `/v1` is added for you.)
+2. Paste the key from the 9Router dashboard.
+3. In **Model ID** type a routed model (`kr/claude-sonnet-4.5`) or **the name of your combo**
+   (`premium-coding`, `free-combo`, …) and press **Enter**. Then press **Test** — `OK` means the
+   key, model and routing all work.
+4. *Refresh models* lists the models and combos the gateway reports; a combo it does not list can
+   still be typed in, nothing has to be discovered first.
+
+The **Custom (OpenAI-compatible)** provider does the same thing if you prefer to keep it separate:
+base URL `http://localhost:20128/v1`, your key, combo name as the model.
+
+Full provider table, environment variables, troubleshooting (`401`, `404`, `stream_options`,
+tool-support fallbacks) and the `.ai_studio.json` rules:
+[`addons/ai_studio/docs/providers.md`](addons/ai_studio/docs/providers.md).
 
 ## Verify the install
 
@@ -33,11 +44,42 @@ most likely extracted one level too deep (Godot only loads `addons/ai_studio/plu
 AI_STUDIO_SMOKE_TEST=1 godot --headless --editor --path /path/to/project
 ```
 
-Prints one line per check and exits 0 when the plugin is healthy.
+Prints one line per check and exits 0 when the plugin is healthy. With
+`AI_STUDIO_SMOKE_TEST_SCENE=res://level.tscn` it also opens that scene and drives the editing
+tools (nodes, material, physics, camera, lighting, save) before reporting.
 
 ## Where things are stored
 
 * Settings and API keys: `user://ai_studio/config.cfg` (never inside your project)
 * Conversations: `user://ai_studio/sessions/`
 * Screenshots taken by the model: `user://ai_studio/shots/`
-* Optional team-shared, non-secret settings: `res://.ai_studio.json`
+* Optional team-shared, non-secret settings: `res://.ai_studio.json` — it cannot set API keys,
+  the system prompt or approval settings, and MCP servers defined there only start after you tick
+  *Trust this project's servers* on the MCP tab.
+
+## Layout
+
+```
+addons/ai_studio/
+├── ai_studio_plugin.gd     EditorPlugin entry point (dock, services, smoke test)
+├── core/                   config, LLM client + SSE streaming, providers, MCP (stdio/HTTP)
+├── core/agent/             agent loop, editor context, 36 built-in Godot tools
+├── ui/                     dock, chat view, model settings, MCP view
+└── docs/providers.md       providers, 9Router, environment variables
+```
+
+36 built-in tools cover scenes and files, the class reference, rigs (bone maps, animation
+retargeting), materials, physics, lighting and import settings; MCP servers add theirs on top.
+
+## Changes in this revision
+
+* 9Router preset added; arbitrary model ids, router aliases and combo names are saved reliably
+  (Enter, focus loss or *Use typed model*) and kept per provider.
+* Base URLs without a path get `/v1` appended, and the normalised value is shown.
+* Requests that an endpoint rejects (`stream_options`, `tools`, `temperature`) are retried
+  automatically and the choice is remembered per provider.
+* Project-shipped MCP servers no longer start without consent; `.ai_studio.json` can no longer
+  change API keys, the system prompt or approval settings.
+* Session/config fixes: `mcp/servers` sections can no longer shadow each other, project overrides
+  are actually applied, `chmod` only runs when a key is stored, `join()` honours its timeout,
+  `is_waiting_for_approval()` reports the real state.
