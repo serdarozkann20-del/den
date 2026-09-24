@@ -238,6 +238,7 @@ Bazı ağ geçitleri veya modeller isteğin belirli alanlarını reddeder. AI St
 | `HTTP 400 ... stream_options` | `stream_options.include_usage` olmadan yeniden denenir. |
 | `HTTP 400 ... tools` | Araçlar olmadan yeniden denenir; model sohbet moduna düşer. Agent modu için araç destekleyen bir model seçin. |
 | `HTTP 400 ... temperature` | `temperature` gönderilmeden yeniden denenir. |
+| `HTTP 400 ... parametersJsonSchema` (yerel Gemini) | Araç şemaları eski Gemini şema biçimiyle (`parameters`) yeniden gönderilir. |
 
 Durum satırı bir fallback uygulandığında bunu bildirir.
 
@@ -515,7 +516,7 @@ Açık sahneye node ekler (geri alınabilir). Üst node yolu, sınıf adı, iste
 | `parent_path` | string | evet |  | Parent path relative to the scene root; '' or '.' means the root. |
 | `type` | string | evet |  | Engine class, e.g. 'Node2D', 'Sprite2D', 'Label'. |
 | `name` | string |  |  | Node name (optional). |
-| `properties` | object |  |  | Optional properties to set, e.g. {"position": "Vector2(100, 50)"} |
+| `values` | object |  |  | Optional property values to set, keyed by property name, e.g. {"position": "Vector2(100, 50)"} |
 
 #### `godot_rename_node`
 
@@ -1001,7 +1002,7 @@ Bir sahne **dosyasına** node ekler ya da başka bir sahneyi örnekler. Sahne a�
 | `name` | string | evet |  | Node name. |
 | `scene_path` | string | evet |  | res:// path of the scene. |
 | `parent_path` | string |  |  | Parent node path inside the scene ('' or '.' = root, e.g. 'Player/Body'). |
-| `properties` | object |  |  | Property values keyed by property name. Values may be JSON (numbers, bools, {x,y}/{x,y,z} vectors, {r,g,b,a} or "#rrggbb" colors) or Godot literals as strings, e.g. "Vector2(10, 20)" or "res://icon.svg" for resources. |
+| `values` | object |  |  | Property values keyed by property name. Values may be JSON (numbers, bools, {x,y}/{x,y,z} vectors, {r,g,b,a} or "#rrggbb" colors) or Godot literals as strings, e.g. "Vector2(10, 20)" or "res://icon.svg" for resources. |
 | `scene_instance` | string |  |  | Instead of 'type': res:// path of a scene to instance here. |
 | `type` | string |  |  | Node class or global script class, e.g. 'Sprite2D'. |
 
@@ -1014,7 +1015,7 @@ Bir sahne dosyasındaki node'un özelliklerini ayarlar. Değerler özelliğin ge
 | Parametre | Tür | Zorunlu | Varsayılan | Açıklama (koddaki tanım) |
 |---|---|---|---|---|
 | `node_path` | string | evet |  | Node path inside the scene ('' = root). |
-| `properties` | object | evet |  | Property values keyed by property name. Values may be JSON (numbers, bools, {x,y}/{x,y,z} vectors, {r,g,b,a} or "#rrggbb" colors) or Godot literals as strings, e.g. "Vector2(10, 20)" or "res://icon.svg" for resources. |
+| `values` | object | evet |  | Property values keyed by property name. Values may be JSON (numbers, bools, {x,y}/{x,y,z} vectors, {r,g,b,a} or "#rrggbb" colors) or Godot literals as strings, e.g. "Vector2(10, 20)" or "res://icon.svg" for resources. |
 | `scene_path` | string | evet |  | res:// path of the scene. |
 
 #### `godot_scene_remove_node`
@@ -1097,7 +1098,7 @@ Herhangi bir sınıftan Resource oluşturup kaydeder: StandardMaterial3D, Theme,
 | `resource_path` | string | evet |  | res:// path to save to (.tres or .res). |
 | `resource_type` | string | evet |  | Class name or global script class. |
 | `overwrite` | boolean |  | `false` | Replace an existing file. |
-| `properties` | object |  |  | Property values keyed by property name. Values may be JSON (numbers, bools, {x,y}/{x,y,z} vectors, {r,g,b,a} or "#rrggbb" colors) or Godot literals as strings, e.g. "Vector2(10, 20)" or "res://icon.svg" for resources. |
+| `values` | object |  |  | Property values keyed by property name. Values may be JSON (numbers, bools, {x,y}/{x,y,z} vectors, {r,g,b,a} or "#rrggbb" colors) or Godot literals as strings, e.g. "Vector2(10, 20)" or "res://icon.svg" for resources. |
 
 #### `godot_read_resource`
 
@@ -1117,7 +1118,7 @@ Bir kaynak dosyasının özelliklerini değiştirip kaydeder. Theme öğeleri `B
 
 | Parametre | Tür | Zorunlu | Varsayılan | Açıklama (koddaki tanım) |
 |---|---|---|---|---|
-| `properties` | object | evet |  | Property values keyed by property name. Values may be JSON (numbers, bools, {x,y}/{x,y,z} vectors, {r,g,b,a} or "#rrggbb" colors) or Godot literals as strings, e.g. "Vector2(10, 20)" or "res://icon.svg" for resources. |
+| `values` | object | evet |  | Property values keyed by property name. Values may be JSON (numbers, bools, {x,y}/{x,y,z} vectors, {r,g,b,a} or "#rrggbb" colors) or Godot literals as strings, e.g. "Vector2(10, 20)" or "res://icon.svg" for resources. |
 | `resource_path` | string | evet |  | res:// path of the resource. |
 
 #### `godot_get_uid`
@@ -2006,6 +2007,7 @@ Her kontrol için bir `ok` / `FAIL` satırı yazdırır, sonunda `=== smoke test
 | `HTTP 401` / *Authentication failed* | Anahtar yanlış veya eksik. Anahtar önce ortam değişkenlerinden okunur; Model sekmesi kullanılan anahtarın kaynağını gösterir. |
 | `/chat/completions` için `HTTP 404` | Adreste `/v1` eksik ya da panel portuna işaret ediyor. Adresi *Apply* ile uygulayıp düzeltilmiş değeri kontrol edin. |
 | `HTTP 400 ... stream_options` / `tools` / `temperature` | Otomatik fallback uygulanır (bkz. [Otomatik geri çekilmeler](#otomatik-geri-çekilmeler-fallback)). |
+| Gemini: `HTTP 400 ... function_declarations[..].parameters.properties[..] ... "object"` | Eski sürümlerde bazı araçların `properties` adlı parametresi JSON Schema anahtarıyla çakışıyordu. Bu sürümde parametrenin adı `values`. Yerel Gemini yolu `parametersJsonSchema` kullanıyor, adı "gemini" içeren modellere OpenAI biçiminde giden şemalardan da boolean `additionalProperties` çıkarılıyor. Güncelleyip eklentiyi yeniden etkinleştirin. |
 | Model araç kullanmıyor | Mod *Chat* olabilir ya da model araç çağırmayı desteklemiyor olabilir. Durum satırında "retrying without tools" görüyorsanız başka bir model seçin. |
 | Model yarıda duruyor | *Max tool steps per message* sınırına ulaşıldı. "Devam et" yazın veya sınırı artırın. |
 | `game_*` araçları "The game is not running" diyor | `godot_game_bridge action=enable` çalıştırın, ardından oyunu **editörden** yeniden başlatın. |

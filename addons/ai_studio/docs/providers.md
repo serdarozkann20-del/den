@@ -70,6 +70,7 @@ if you prefer to keep it separate from the preset: set the base URL to
 | `HTTP 404` on `/chat/completions` | Base URL missing `/v1` (or pointing at the dashboard port). Apply the URL and check the field's normalised value. |
 | The combo's first provider is exhausted | Not a plugin problem: 9Router itself returns the upstream error, and that text is shown in the chat. Check the combo in the 9Router dashboard. |
 | `HTTP 400 ... stream_options` | The gateway or its upstream rejects `stream_options.include_usage`. AI Studio retries the request without it and remembers that for this provider, so it happens only once. The chat status line reports the fallback. |
+| Gemini `HTTP 400 ... function_declarations[..].parameters.properties[..] ... "object"` | Fixed: tool parameters named `properties` (now `values`) collided with the JSON-Schema keyword in Gemini's and gateways' schema converters. Native Gemini requests now send `parametersJsonSchema` (falling back to the older `parameters` format if an endpoint rejects it), and OpenAI-format requests to `gemini*` models drop boolean `additionalProperties`. |
 | `HTTP 400 ... tools` | The routed upstream does not accept tool definitions. AI Studio retries without tools; the model then answers in plain chat mode. Pick a tool-capable model for agent mode. |
 
 Optional request fields are retried this way per provider

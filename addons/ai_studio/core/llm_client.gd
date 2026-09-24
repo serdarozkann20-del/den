@@ -223,6 +223,7 @@ func _request_flags(pid: String) -> Dictionary:
 		"stream_options": not bool(config.get_provider_field(pid, "omit_stream_options", false)),
 		"tools": not bool(config.get_provider_field(pid, "omit_tools", false)),
 		"temperature": not bool(config.get_provider_field(pid, "omit_temperature", false)),
+		"json_schema": not bool(config.get_provider_field(pid, "omit_json_schema", false)),
 	}
 
 
@@ -238,6 +239,7 @@ func _next_degradation(status: int, message: String, flags: Dictionary) -> Strin
 		return ""
 	var text := message.to_lower()
 	var candidates := [
+		{"flag": "json_schema", "needles": ["parameters_json_schema", "parametersjsonschema"]},
 		{"flag": "stream_options", "needles": ["stream_options", "include_usage", "unknown field", "unrecognized field", "unsupported parameter"]},
 		{"flag": "tools", "needles": ["tool_choice", "\"tools\"", "tools:", "function calling", "tool calling", "tools are not supported", "does not support tools"]},
 		{"flag": "temperature", "needles": ["temperature"]},
@@ -260,6 +262,8 @@ func _degradation_note(drop: String) -> String:
 			return "provider rejects the tool definitions, retrying without tools (agent tools unavailable for this model)"
 		"temperature":
 			return "provider rejects 'temperature', retrying without it"
+		"json_schema":
+			return "provider rejects parametersJsonSchema, retrying with the older Gemini schema format"
 	return "retrying with a reduced request"
 
 
@@ -369,7 +373,10 @@ func _openai_body(model: String, messages: Array, tools: Array, stream: bool, te
 	if max_tokens > 0:
 		body["max_tokens"] = max_tokens
 	if not tools.is_empty() and bool(flags.get("tools", true)):
-		body["tools"] = tools
+		# Gemini behind an OpenAI-compatible endpoint (Google's own, OpenRouter,
+		# 9Router, ...) converts the schemas to its OpenAPI subset, which has no
+		# boolean additionalProperties.
+		body["tools"] = _gemini_safe_tools(tools) if model.to_lower().contains("gemini") else tools
 		body["tool_choice"] = "auto"
 	if stream and bool(flags.get("stream_options", true)):
 		# Usage in the final chunk. Endpoints that do not understand the field
@@ -544,11 +551,20 @@ func _gemini_body(messages: Array, tools: Array, temperature: float, max_tokens:
 		for t in tools:
 			if String(t.get("type", "")) == "function":
 				var fn: Dictionary = t.get("function", {})
-				decls.append({
+				var params = fn.get("parameters", {"type": "object", "properties": {}})
+				var decl := {
 					"name": String(fn.get("name", "")),
 					"description": String(fn.get("description", "")),
-					"parameters": _gemini_schema(fn.get("parameters", {"type": "object", "properties": {}})),
-				})
+				}
+				# Current Gemini models take plain JSON Schema in parametersJsonSchema
+				# (additionalProperties, free-form objects, ...). The older
+				# OpenAPI-subset `parameters` field is the fallback when an endpoint
+				# rejects it - see _next_degradation().
+				if bool(flags.get("json_schema", true)):
+					decl["parametersJsonSchema"] = _json_schema_clean(params)
+				else:
+					decl["parameters"] = _gemini_schema(params)
+				decls.append(decl)
 	if not decls.is_empty():
 		body["tools"] = [{"functionDeclarations": decls}]
 	var gen: Dictionary = {}
@@ -574,6 +590,61 @@ func _gemini_parts(content: Variant) -> Array:
 		if not parts.is_empty():
 			return parts
 	return [{"text": _content_to_string(content)}]
+
+
+func _gemini_safe_tools(tools: Array) -> Array:
+	var out: Array = []
+	for t in tools:
+		if typeof(t) != TYPE_DICTIONARY or not (t as Dictionary).has("function"):
+			out.append(t)
+			continue
+		var copy: Dictionary = (t as Dictionary).duplicate(true)
+		var fn: Dictionary = copy["function"]
+		fn["parameters"] = _strip_bool_additional(fn.get("parameters", {"type": "object", "properties": {}}))
+		out.append(copy)
+	return out
+
+
+func _strip_bool_additional(schema: Variant) -> Variant:
+	if typeof(schema) != TYPE_DICTIONARY:
+		return schema
+	var out := {}
+	for key in (schema as Dictionary).keys():
+		var v = schema[key]
+		if key in ["$schema", "strict"] or (key == "additionalProperties" and typeof(v) == TYPE_BOOL):
+			continue
+		if key == "properties" and typeof(v) == TYPE_DICTIONARY:
+			var props := {}
+			for pname in v.keys():
+				props[pname] = _strip_bool_additional(v[pname])
+			out["properties"] = props
+		elif key == "items" or key == "additionalProperties":
+			out[key] = _strip_bool_additional(v)
+		else:
+			out[key] = v
+	return out
+
+
+## JSON Schema for Gemini's parametersJsonSchema: only drops the keywords
+## that are meta-data for other APIs.
+func _json_schema_clean(schema: Variant) -> Variant:
+	if typeof(schema) != TYPE_DICTIONARY:
+		return {"type": "object", "properties": {}}
+	var out := {}
+	for key in (schema as Dictionary).keys():
+		if key in ["$schema", "strict"]:
+			continue
+		var v = schema[key]
+		if key == "properties" and typeof(v) == TYPE_DICTIONARY:
+			var props := {}
+			for pname in v.keys():
+				props[pname] = _json_schema_clean(v[pname])
+			out["properties"] = props
+		elif key == "items" or (key == "additionalProperties" and typeof(v) == TYPE_DICTIONARY):
+			out[key] = _json_schema_clean(v)
+		else:
+			out[key] = v
+	return out
 
 
 ## Gemini's schema dialect does not accept every JSON-Schema keyword.

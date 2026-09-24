@@ -104,6 +104,11 @@ func has(tool_name: String) -> bool:
 	return _handlers.has(tool_name)
 
 
+## Tools whose "properties" argument is exposed to the model as "values".
+const VALUES_ALIAS_TOOLS := ["godot_add_node", "godot_scene_add_node", "godot_scene_modify_node",
+	"godot_create_resource", "godot_modify_resource"]
+
+
 ## Executes a tool. Always returns {"ok": bool, "text": String, "error": String}.
 func call_tool(tool_name: String, args: Dictionary) -> Dictionary:
 	if not _handlers.has(tool_name):
@@ -111,6 +116,14 @@ func call_tool(tool_name: String, args: Dictionary) -> Dictionary:
 	if _editor_only.has(tool_name) and not AIStudioEditorEnv.available():
 		return {"ok": false, "text": "",
 			"error": "Tool '%s' needs a running Godot editor and is unavailable here." % tool_name}
+	# The property-value maps are exposed as "values": a parameter literally
+	# named "properties" collides with the JSON-Schema keyword and breaks the
+	# schema converters of Gemini and several gateways. The handlers still read
+	# "properties", and callers that send the old name keep working.
+	if args.has("values") and not args.has("properties") and VALUES_ALIAS_TOOLS.has(tool_name):
+		args = args.duplicate()
+		args["properties"] = args["values"]
+		args.erase("values")
 	var handler: Callable = _handlers[tool_name]["handler"]
 	var out = await handler.call(args)
 	if out == null:
@@ -255,7 +268,7 @@ func _register_all() -> void:
 			"parent_path": _str("Parent path relative to the scene root; '' or '.' means the root."),
 			"type": _str("Engine class, e.g. 'Node2D', 'Sprite2D', 'Label'."),
 			"name": _str("Node name (optional)."),
-			"properties": {"type": "object", "description": "Optional properties to set, e.g. {\"position\": \"Vector2(100, 50)\"}", "additionalProperties": true},
+			"values": {"type": "object", "description": "Optional property values to set, keyed by property name, e.g. {\"position\": \"Vector2(100, 50)\"}", "additionalProperties": true},
 		}, ["parent_path", "type"]),
 		func(a): return _tool_add_node(a), false, "scene")
 

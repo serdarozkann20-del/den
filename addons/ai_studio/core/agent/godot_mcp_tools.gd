@@ -89,7 +89,7 @@ func register() -> void:
 			"parent_path": host._str("Parent node path inside the scene ('' or '.' = root, e.g. 'Player/Body')."),
 			"type": host._str("Node class or global script class, e.g. 'Sprite2D'."),
 			"name": host._str("Node name."),
-			"properties": props_schema,
+			"values": props_schema,
 			"scene_instance": host._str("Instead of 'type': res:// path of a scene to instance here."),
 		}, ["scene_path", "name"]),
 		func(a): return _tool_scene_add_node(a), false, "scene_file")
@@ -99,8 +99,8 @@ func register() -> void:
 		host._obj({
 			"scene_path": host._str("res:// path of the scene."),
 			"node_path": host._str("Node path inside the scene ('' = root)."),
-			"properties": props_schema,
-		}, ["scene_path", "node_path", "properties"]),
+			"values": props_schema,
+		}, ["scene_path", "node_path", "values"]),
 		func(a): return _tool_scene_modify_node(a), false, "scene_file")
 
 	host._add("godot_scene_remove_node",
@@ -158,7 +158,7 @@ func register() -> void:
 		host._obj({
 			"resource_type": host._str("Class name or global script class."),
 			"resource_path": host._str("res:// path to save to (.tres or .res)."),
-			"properties": props_schema,
+			"values": props_schema,
 			"overwrite": host._bool("Replace an existing file.", false),
 		}, ["resource_type", "resource_path"]),
 		func(a): return _tool_create_resource(a), false, "resources")
@@ -172,8 +172,8 @@ func register() -> void:
 		"Change properties of a resource file and save it. Theme items can be set as 'Button/colors/font_color', 'Label/font_sizes/font_size' etc.",
 		host._obj({
 			"resource_path": host._str("res:// path of the resource."),
-			"properties": props_schema,
-		}, ["resource_path", "properties"]),
+			"values": props_schema,
+		}, ["resource_path", "values"]),
 		func(a): return _tool_modify_resource(a), false, "resources")
 
 	host._add("godot_get_uid",
