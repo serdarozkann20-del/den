@@ -20,8 +20,12 @@ var _dock_control: Control
 
 
 func _enter_tree() -> void:
+	# Collect editor errors/prints from the start for godot_editor_log.
+	AIStudioEditorLog.install()
 	config = AIStudioConfig.new()
 	tools = AIStudioGodotTools.new()
+	tools.apply_config(config)
+	config.changed.connect(func(): tools.apply_config(config))
 	llm = AIStudioLLMClient.new(config)
 	add_child(llm)
 	mcp = AIStudioMcpManager.new(config, self)
@@ -238,6 +242,7 @@ func _run_scene_smoke_test(report: Callable, lines: PackedStringArray, scene_pat
 
 
 func _exit_tree() -> void:
+	AIStudioEditorLog.uninstall()
 	if mcp != null:
 		mcp.disconnect_all()
 	if llm != null:

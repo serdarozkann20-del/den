@@ -134,6 +134,7 @@ func _build_tools_tab() -> Control:
 
 	rebuild_tools_list()
 	mcp.tools_changed.connect(rebuild_tools_list)
+	config.changed.connect(rebuild_tools_list)
 	return root
 
 
@@ -175,7 +176,7 @@ func rebuild_tools_list() -> void:
 func _on_tool_selected(index: int) -> void:
 	var name := _tool_picker.get_item_text(index)
 	var schema := {}
-	for d in tools.definitions():
+	for d in tools.definitions(true, true):
 		if String(d["function"]["name"]) == name:
 			schema = d["function"]["parameters"]
 			break
@@ -189,6 +190,8 @@ func _on_tool_selected(index: int) -> void:
 				example[key] = false
 			"object":
 				example[key] = {}
+			"array":
+				example[key] = []
 			_:
 				example[key] = ""
 	_tool_args.text = JSON.stringify(example, "  ")

@@ -44,6 +44,7 @@ Prints one line per check and exits 0 when the plugin is healthy.
 * Settings and API keys: `user://ai_studio/config.cfg` (never inside your project)
 * Conversations: `user://ai_studio/sessions/`
 * Screenshots taken by the model: `user://ai_studio/shots/`
+* Tool reference, game bridge and safety rules: [`docs/tools.md`](docs/tools.md)
 * Optional team-shared, non-secret settings: `res://.ai_studio.json` — it may set model choices,
   base URLs and MCP server definitions, but never API keys, the system prompt or approval
   settings, and its MCP servers only start after you tick *Trust this project's servers*.

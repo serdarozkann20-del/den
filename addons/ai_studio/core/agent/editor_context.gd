@@ -82,6 +82,9 @@ Rules:
 - Mutating tools require user approval, so explain what you are about to do in one short sentence first.
 - Use GDScript 4 syntax (typed where natural, tabs for indentation, `@tool` when editor-time behaviour is wanted, `@export`, signal connections via `signal.connect(callable)`).
 - When you change a scene, describe the node paths you touched so the user can review it in the editor.
+- The currently edited scene: use godot_add_node / godot_set_node_property (undo aware). Other scene files: use godot_scene_* tools. After writing scripts run godot_validate_scripts.
+- Animation names: godot_animation_rename (scenes/libraries/SpriteFrames, updates references), godot_import_animation_names for .glb/.fbx models (names there are restored on reimport), godot_animation_edit to fix track paths/bones/loop/speed. After script or scene changes check godot_editor_log. godot_run_editor_script is the last resort for anything else.
+- To test the game: godot_game_bridge action=enable (once per project), godot_play_scene, then the game_* tools (game_get_scene_tree, game_screenshot, game_click, game_get_errors ...; game_commands lists the rest, game_command runs them).
 - Be concise: short answers, code in fenced blocks. No filler.""" % Engine.get_version_info().get("string", "4.x")
 
 

@@ -152,6 +152,8 @@ func _build() -> void:
 	root.add_child(_check("include_project_settings", "Include project settings in context (large)", false))
 	root.add_child(_check("save_sessions", "Save conversations to user://ai_studio/sessions", true))
 	root.add_child(_check("store_keys_in_config", "Store the API key in the local config file", true))
+	root.add_child(_check("game_tools", "Offer runtime game tools (game_*) to the model", true))
+	root.add_child(_check("expose_all_game_commands", "Expose every game command as its own tool (+100 tools; some providers cap tools at 128)", false))
 	root.add_child(_hint("Keys are read from environment variables first (OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY, NOUS_API_KEY, OPENROUTER_API_KEY). Stored keys live outside the project, in the editor's user data folder, chmod 600 where supported."))
 
 	root.add_child(_number("temperature", "Temperature", 0.0, 2.0, 0.05))

@@ -221,7 +221,7 @@ func _execute_with_approval(call: Dictionary) -> Dictionary:
 	if args.has("__raw"):
 		return {"ok": false, "text": "", "error": "The model produced malformed tool arguments: " + String(args["__raw"]).substr(0, 200)}
 
-	var needs_approval := _needs_approval(tool_name)
+	var needs_approval := _needs_approval(tool_name, args)
 	if needs_approval and not _auto_approve_rest:
 		_pending_approvals[call_id] = call
 		status_changed.emit("approval", "Waiting for your approval: %s" % tool_name)
@@ -247,9 +247,11 @@ func _execute_with_approval(call: Dictionary) -> Dictionary:
 ##     `general.confirm_mutations` is false, otherwise ask
 ##   * MCP tools -> ask, unless the user turned `general.approve_mcp_tools` off
 ##     or that specific server is marked `auto_approve` in its config
-func _needs_approval(tool_name: String) -> bool:
+func _needs_approval(tool_name: String, args: Dictionary = {}) -> bool:
 	if godot_tools.has(tool_name):
-		if godot_tools.is_safe(tool_name):
+		if godot_tools.requires_confirmation(tool_name):
+			return true
+		if godot_tools.is_safe_call(tool_name, args):
 			return false
 		return bool(config.get_value("general", "confirm_mutations", true))
 	var route = mcp.route_for(tool_name) if mcp != null else null

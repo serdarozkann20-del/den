@@ -63,15 +63,31 @@ tools (nodes, material, physics, camera, lighting, save) before reporting.
 addons/ai_studio/
 ├── ai_studio_plugin.gd     EditorPlugin entry point (dock, services, smoke test)
 ├── core/                   config, LLM client + SSE streaming, providers, MCP (stdio/HTTP)
-├── core/agent/             agent loop, editor context, 36 built-in Godot tools
+├── core/agent/             agent loop, editor context, built-in Godot tools
+├── runtime/                game bridge server (autoload, runs only in editor-launched games)
 ├── ui/                     dock, chat view, model settings, MCP view
-└── docs/providers.md       providers, 9Router, environment variables
+├── docs/providers.md       providers, 9Router, environment variables
+└── docs/tools.md           every built-in tool, the game bridge, safety rules
 ```
 
-36 built-in tools cover scenes and files, the class reference, rigs (bone maps, animation
-retargeting), materials, physics, lighting and import settings; MCP servers add theirs on top.
+Built-in tools cover scenes and files, the class reference, rigs (bone maps, animation
+retargeting), materials, physics, lighting and import settings, scene files and resources on
+disk, animation renaming (including names inside imported models, with reference updates)
+and in-place animation fixes, a one-off editor script runner and the editor error log, script
+validation, autoloads, input map, layers, plugins, translations, export presets,
+exports and CI files, plus 110 runtime `game_*` commands that inspect and drive the running game
+(ported from [godot-mcp](https://github.com/tugcantopaloglu/godot-mcp), MIT). MCP servers add
+theirs on top. See [`addons/ai_studio/docs/tools.md`](addons/ai_studio/docs/tools.md).
 
 ## Changes in this revision
+
+* The godot-mcp tool set now runs natively inside the plugin, with no Node.js server and no
+  extra Godot processes: 28 editor tools for scene files, resources, scripts and project
+  configuration, and a game bridge with 110 runtime commands (see `docs/tools.md`).
+* Animation-name tools: rename animations/libraries/SpriteFrames and every reference, fix names
+  inside imported models via a generated post-import script, edit animations in place (track
+  paths, bones, broken tracks, loop, speed, copy/move), plus `godot_run_editor_script` and
+  `godot_editor_log`.
 
 * 9Router preset added; arbitrary model ids, router aliases and combo names are saved reliably
   (Enter, focus loss or *Use typed model*) and kept per provider.

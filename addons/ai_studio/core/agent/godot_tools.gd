@@ -15,7 +15,7 @@ const MAX_READ_BYTES := 400_000
 const MAX_WRITE_BYTES := 2_000_000
 const TEXT_EXTENSIONS := ["gd", "tscn", "tres", "godot", "json", "cfg", "md", "txt", "csv", "tsv",
 	"shader", "gdshader", "gdshaderinc", "po", "pot", "svg", "xml", "yaml", "yml", "ini", "env.example"]
-const WRITE_EXTENSIONS := ["gd", "tscn", "tres", "json", "cfg", "md", "txt", "csv", "shader", "gdshader",
+const WRITE_EXTENSIONS := ["gd", "cs", "tscn", "tres", "json", "cfg", "md", "txt", "csv", "shader", "gdshader",
 	"gdshaderinc", "po", "pot", "svg", "xml", "yaml", "yml", "ini"]
 
 var _handlers: Dictionary = {}
@@ -24,6 +24,14 @@ var _definitions: Array = []
 ## EditorInterface). Headless/exported runs get a clean error instead.
 var _editor_only: Dictionary = {}
 var _screenshot_dir := "user://ai_studio/shots"
+## Per-call safety for tools whose risk depends on the arguments
+## (e.g. game_command is read-only for some commands only).
+var _safe_fns: Dictionary = {}
+## Tool categories hidden from the model (still callable by name).
+var _hidden_categories: Dictionary = {"game_all": true}
+var game_bridge: AIStudioGameBridge = null
+## Tools that always ask before running, even with approvals switched off.
+var _always_confirm: Dictionary = {}
 
 
 func _init() -> void:
@@ -34,14 +42,31 @@ func _init() -> void:
 # Public API
 # ---------------------------------------------------------------------------
 
-func definitions(include_unsafe: bool = true) -> Array:
+func definitions(include_unsafe: bool = true, include_hidden: bool = false) -> Array:
 	var out: Array = []
 	for d in _definitions:
 		var name := String(d["function"]["name"])
 		if not include_unsafe and not bool(_handlers[name]["safe"]):
 			continue
+		if not include_hidden and _hidden_categories.has(String(_handlers[name]["category"])):
+			continue
 		out.append(d.duplicate(true))
 	return out
+
+
+## Applies the tool-visibility settings. Runtime game tools: off, compact
+## (default: everyday commands + game_command) or every command as a tool.
+func apply_config(config: AIStudioConfig) -> void:
+	_hidden_categories = {}
+	if not bool(config.get_value("general", "game_tools", true)):
+		_hidden_categories["game"] = true
+		_hidden_categories["game_all"] = true
+	elif not bool(config.get_value("general", "expose_all_game_commands", false)):
+		_hidden_categories["game_all"] = true
+
+
+func category_of(tool_name: String) -> String:
+	return String(_handlers.get(tool_name, {}).get("category", ""))
 
 
 func definition_names() -> PackedStringArray:
@@ -53,6 +78,26 @@ func definition_names() -> PackedStringArray:
 
 func is_safe(tool_name: String) -> bool:
 	return bool(_handlers.get(tool_name, {}).get("safe", false))
+
+
+## Like is_safe(), but also consults argument-dependent rules.
+func is_safe_call(tool_name: String, args: Dictionary) -> bool:
+	if _safe_fns.has(tool_name):
+		return bool((_safe_fns[tool_name] as Callable).call(args))
+	return is_safe(tool_name)
+
+
+## Marks a tool as always needing the user's approval (see agent_session).
+func always_confirm(tool_name: String) -> void:
+	_always_confirm[tool_name] = true
+
+
+func requires_confirmation(tool_name: String) -> bool:
+	return _always_confirm.has(tool_name)
+
+
+func _set_safe_fn(tool_name: String, fn: Callable) -> void:
+	_safe_fns[tool_name] = fn
 
 
 func has(tool_name: String) -> bool:
@@ -282,6 +327,15 @@ func _register_all() -> void:
 	# 3D, rig, animation, material, physics and import tools live in their own
 	# module and register into this registry (they reuse the guards below).
 	AIStudioGodot3DTools.new(self).register()
+
+	# Project, scene-file, resource, script, input/autoload/layer, export and CI
+	# tools, plus the runtime game bridge (ported from godot-mcp).
+	AIStudioGodotMcpTools.new(self).register()
+	game_bridge = AIStudioGameBridge.new(self)
+	game_bridge.register()
+
+	# Animation-name fixes, in-place animation edits, editor script and log.
+	AIStudioGodotAnimTools.new(self).register()
 
 	# Everything below drives EditorInterface and therefore only works in the
 	# editor; call_tool() turns these into a readable error anywhere else.

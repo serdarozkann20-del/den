@@ -42,6 +42,8 @@ const DEFAULTS := {
 		"system_prompt": "",
 		"save_sessions": true,
 		"store_keys_in_config": true,        # off => keep keys in env vars only
+		"game_tools": true,                  # offer the runtime game_* tools to the model
+		"expose_all_game_commands": false,   # every game command as its own tool (108 more tools)
 	},
 	"ui": {
 		"last_tab": 0,
@@ -66,7 +68,7 @@ const DEFAULTS := {
 ## cloned project, so it must never be able to lower a safety barrier (approval
 ## prompts, sampling, auto-starting MCP servers) or smuggle in a secret.
 const PROJECT_OVERRIDE_BLOCKED := {
-	"general": ["confirm_mutations", "approve_mcp_tools", "auto_approve_safe_tools", "system_prompt"],
+	"general": ["confirm_mutations", "approve_mcp_tools", "auto_approve_safe_tools", "system_prompt", "game_tools", "expose_all_game_commands"],
 	"mcp": ["auto_connect", "allow_project_servers", "allow_sampling", "enabled"],
 	"providers": ["api_key"],
 }
